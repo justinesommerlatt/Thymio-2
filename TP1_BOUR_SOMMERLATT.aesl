@@ -1,0 +1,199 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+<constant value="500" name="VIT_MAX"/>
+
+
+<!--node Thymio-II Wireless-->
+<node name="Thymio-II Wireless" nodeId="{2ae5de51-5578-48d9-afd8-e205b0329748}"><![CDATA[#*
+ * Fichier définissant le contrôle d'un Thymio 2
+ *
+ * À vous de jouer :
+ * - normalisation des données et 
+ * - calcul des vitesses de roues souhaitées
+ *
+ *#
+ 
+ 
+ 
+ 
+ 
+ #CODE DE BOUR CAMILLE ET SOMMERLATT JUSTINE
+ 
+ 
+ 
+ 
+ 
+ 
+# numéro du capteur
+var cpt
+# donnée capteur normalisée
+var npi[7]
+var CAPTEUR0
+var CAPTEUR1
+var CAPTEUR2
+var CAPTEUR3
+var CAPTEUR4
+var CAPTEUR5
+var CAPTEUR6
+
+var vitesse_roue_gauche
+var vitesse_roue_droite
+var distance_min = 3000
+var distance_max = 3000
+
+var  running = 0
+var counter = 0
+var intensityDiff
+var freq
+
+var black 
+var white
+
+var alea 
+
+# coupe le timer 0 
+timer.period[0] = 0
+
+# ajout d'un deuxième timer
+#coupe le timer 1
+timer.period[1] = 0 
+
+
+# Boucle principale (liée au timer 0)
+onevent timer0
+
+#on coupe le timer 1 puisque la boucle est liée au timer 0
+timer.period[1] = 0
+
+# Les capteurs vont de 0 à 6, de l'avt G à l'arr D
+for cpt in 0:6 do
+	# vous pouvez normaliser la valeur
+	npi[cpt] = prox.horizontal[cpt] 
+end
+  
+CAPTEUR0 = npi[0] - 1500
+CAPTEUR1 = npi[1] - 1500
+CAPTEUR2 = npi[2] - 1500
+CAPTEUR3 = npi[3] - 1500
+CAPTEUR4 = npi[4] - 1500
+CAPTEUR5 = npi[5] - 1500
+CAPTEUR6 = npi[6] - 1500
+
+
+# avancer en ligne droite
+	vitesse_roue_gauche = VIT_MAX
+	vitesse_roue_droite = VIT_MAX
+	call sound.freq(2500, 10)
+	call leds.top(41,17,47)   # lumière rose sur le robot
+
+	
+  	if CAPTEUR0 > CAPTEUR2 and CAPTEUR4 > CAPTEUR2 then # si on est dans un coin
+  		if CAPTEUR0 < distance_max and CAPTEUR4 < distance_max then	
+ 	 		if CAPTEUR0 > CAPTEUR4 then
+ 	 		call leds.top(0,32,0)   # lumière verte sur le robot
+ 	 		call sound.freq(10000, 10)
+  				vitesse_roue_gauche = -VIT_MAX
+  				vitesse_roue_droite = VIT_MAX
+  				
+  			else
+  			call leds.top(32,0,0)  # lumière rouge sur le robot
+  			call sound.freq(2000, 2)
+  				vitesse_roue_gauche = VIT_MAX
+  				vitesse_roue_droite = -VIT_MAX
+  			end
+  		else
+  			timer.period[1] = 100 #
+  		end
+  	else if CAPTEUR0 > CAPTEUR2 then # plus de rayons infrarouges renvoyés sur le capteur 0 (=capteur de gauche) donc il y a un obstacle sur la gauche du robot
+  		#on diminue la vitesse de la roue de droite en gardant la même vitesse à gauche afin de dévier vers la droite 
+  		call leds.top(0,32,0)   # lumière verte sur le robot
+  		call sound.freq(10000, 10)
+  		vitesse_roue_gauche = VIT_MAX
+  		vitesse_roue_droite = -1/2 * VIT_MAX
+  		
+	  	else if CAPTEUR4 > CAPTEUR2 then # plus de rayons infrarouges renvoyés sur le capteur 4 (=capteur de droite) donc il y a un obstacle sur la droite du robot
+	  		#on diminue la vitesse de la roue de gauche en gardant la même vitesse à droite afin de dévier vers la gauche 
+	  		call leds.top(32,0,0)  # lumière rouge sur le robot
+	  		call sound.freq(2000, 2)
+	  		vitesse_roue_gauche = -1/2 * VIT_MAX
+	  		vitesse_roue_droite = VIT_MAX
+	  		
+		  	
+		  	
+		  	else if CAPTEUR2 >= distance_min then # il y a un obstacle en face du robot
+		  	#on doit définir de quel côté on tourne
+			  		if CAPTEUR1 > CAPTEUR3 then 
+			  		#plus d'infrarouges sur la gauche CAPTEUR1 que sur la droite CAPTEUR3, et donc obstacle à gauche donc on tourne à droite
+			  		call sound.freq(10000, 10)   # lumière verte sur le robot
+			  		call sound.system(2)
+			  			vitesse_roue_gauche = VIT_MAX
+			  			vitesse_roue_droite = -VIT_MAX
+			  			
+			  		else
+			  		#sinon c'est l'inverse on tourne à gauche
+			  		call leds.top(32,0,0)  # lumière rouge sur le robot
+			  		call sound.freq(2000, 2)
+			  			vitesse_roue_gauche = -VIT_MAX
+			  			vitesse_roue_droite = VIT_MAX
+			  			
+			  		
+			  			
+			  		end
+			  	
+			  	#Pareil sauf pas d'obstacle en face
+			  	else if  CAPTEUR1 > CAPTEUR3 then 
+			  	#aller vers la droite 
+			  	call leds.top(0,32,0)   # lumière verte sur le robot
+			  	call sound.freq(10000, 10)
+				  		vitesse_roue_gauche = VIT_MAX
+				  		vitesse_roue_droite = -VIT_MAX
+				  		
+					else  if CAPTEUR1 < CAPTEUR3 then 
+					#aller vers la gauche
+					call leds.top(32,0,0)  # lumière rouge sur le robot
+					call sound.freq(2000, 2)
+						vitesse_roue_gauche = -VIT_MAX
+						vitesse_roue_droite = VIT_MAX
+						
+			  			end
+			  		end
+			  	end
+		  	end
+	  	end
+  	end
+  
+# vitesses souhaitées (entre -500 et 500)
+motor.left.target  = vitesse_roue_gauche
+motor.right.target = vitesse_roue_droite
+
+# event timer 1
+onevent timer1
+while CAPTEUR4 > distance_min do
+	motor.left.target  = -VIT_MAX
+	motor.right.target = VIT_MAX
+	CAPTEUR4 = prox.horizontal[4] 
+end	
+
+timer.period[0] = 100
+
+# Appuyer sur le bouton avant lance la boucle principale
+onevent button.forward
+timer.period[0] = 100  # lance la boucle principale
+call sound.system(7)
+call leds.top(41,17,47)   # lumière rose sur le robot
+
+# Appuyer sur le bouton central arrête le robot
+onevent button.center
+call sound.system(7)
+timer.period[0] = 0         # stoppe le timer 0
+timer.period[1] = 0			# stoppe le timer 1
+
+motor.left.target  = 0      # arrête le robot
+motor.right.target = 0
+]]></node>
+
+
+</network>
